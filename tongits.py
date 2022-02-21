@@ -29,7 +29,7 @@ class Card:
 
     def update(self):
 
-        slow=8
+        slow=6
         epsilon=0.5
 
         if self.is_moving:
@@ -126,16 +126,16 @@ for i in range(0,52):
 random.shuffle(values)
 
 
-
+minz=0
+maxz=0
 
 cards=[]
 entities=[]
-z=0
 for i in range(0,len(values)):
-    card=Card(values[i],0,0,z,False)
+    card=Card(values[i],0,0,maxz,False)
     cards.append(card)
     entities.append(card)
-    z+=1
+    maxz+=1
 
 
 
@@ -146,7 +146,7 @@ for i in range(0,len(cards)):
 
 
 hands=[]
-for h in range(0,4):
+for h in range(0,3):
     hands.append([])
     for c in range(0,13 if h==0 else 12):
         hands[h].append(stock.pop(len(stock)-1))
@@ -167,6 +167,8 @@ drag_entity=None
 
 mouse_right_hold=False
 
+current_card=None
+
 quit = False
 while not quit:
 
@@ -183,15 +185,60 @@ while not quit:
     elif event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
             quit=True
+        elif event.key == pygame.K_f:
+            if event.mod == pygame.KMOD_NONE:     
+                 if current_card != None:
+                    current_card.z+=1
+                    if current_card.z>maxz:
+                        maxz=current_card.z+1  
+            elif event.mod & pygame.KMOD_SHIFT:        
+                if current_card != None:
+                    current_card.z=maxz+1  
+        elif event.key == pygame.K_b:
+            if event.mod == pygame.KMOD_NONE:     
+                 if current_card != None:
+                    current_card.z-=1
+                    if current_card.z<minz:
+                        minz=current_card.z-1
+            elif event.mod & pygame.KMOD_SHIFT:        
+                if current_card != None:
+                    current_card.z=minz-1
+ 
 
-
+ 
     mouse.button=pygame.mouse.get_pressed()
 
+
     display.fill(GREEN)
+
 
     entities.sort(key=lambda entity:entity.z,reverse=True)
     for i in range(len(entities)-1,-1,-1):
         entities[i].draw(display)
+
+
+
+
+    if not is_dragging:
+        if mouse.button[MOUSE_BUTTON_LEFT]:
+            for i in range(len(entities)):
+                entity=entities[i]
+                if type(entity) is Card:
+                    if inrect(mouse.x,mouse.y,entity.x,entity.y,CARD_WIDTH,CARD_HEIGHT):
+                        maxz+=1
+                        entity.z=maxz
+                        diffx=entity.x-mouse.x
+                        diffy=entity.y-mouse.y
+                        drag_entity=entity
+                        current_card=entity
+                        is_dragging=True
+                        break
+    elif mouse.button[MOUSE_BUTTON_LEFT]:
+        drag_entity.x=mouse.x+diffx
+        drag_entity.y=mouse.y+diffy
+        drag_entity.z=maxz+1
+    else:
+        is_dragging=False            
 
 
 
@@ -202,8 +249,6 @@ while not quit:
                 entity=entities[i]
                 if type(entity) is Card:
                     if inrect(mouse.x,mouse.y,entity.x,entity.y,CARD_WIDTH,CARD_HEIGHT):
-                        z+=1
-                        entity.z=z
                         entity.is_showing = not entity.is_showing
                         break
     else:
@@ -211,40 +256,15 @@ while not quit:
 
 
 
-    if not is_dragging:
-        if mouse.button[MOUSE_BUTTON_LEFT]:
-            for i in range(len(entities)):
-                entity=entities[i]
-                if type(entity) is Card:
-                    if inrect(mouse.x,mouse.y,entity.x,entity.y,CARD_WIDTH,CARD_HEIGHT):
-                        z+=1
-                        entity.z=z
-                        diffx=entity.x-mouse.x
-                        diffy=entity.y-mouse.y
-                        drag_entity=entity
-                        is_dragging=True
-                        break
-
-    elif mouse.button[0]:
-        drag_entity.x=mouse.x+diffx
-        drag_entity.y=mouse.y+diffy
-        drag_entity.z=z+1
-        
-    else:
-        is_dragging=False            
-
-
-
-
     if is_dealing:
 
-        hands[dh][dc].z=z
+        hands[dh][dc].z=maxz
         hands[dh][dc].update()
         if not hands[dh][dc].is_moving:
 
             hands[dh][dc].is_showing=True
 
-            z+=1
+            maxz+=1
             dc+=1
             if dc>=len(hands[dh]):
                 dc=0
